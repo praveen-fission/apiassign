@@ -9,27 +9,64 @@ All the fields are not mandatory
 
 The Content will have fields such as title, body, summary, categories and pdf
 
-Lines 1- 10: Importing required modules and setting database
 
-Lines 12-57: 3 tables (User, Content, Categories)
+GET Request
 
-Lines 59-76: (/addcategories/<int:id>) To add categories for a particular content based on id of content
+1. Get all posts based on ID:  localhost:5000/getPost/2
 
-Lines 78-91: (getcategories/<int:id>) To get all the categories for a particular content
+2. Get content of a user:  localhost:5000/getcontentforuser/2
 
-Lines 94-125: (/addUser) Adding user and validating the user details
+3. Search the text:  localhost:5000/search1/2nd body
 
-Lines 128-159: (/search1/<string:text>) Searching for text in the Content
+4. Get all the categories of an id:  localhost:5000/getcategories/2
 
-Line 161-179: (/getUser) Get all the users registered
 
-Line 181-235: (/getPost/<int:id>) Get the content for a particular user using id
+POST Request
 
-Line 238-265: (/delemployee/<string:testingusername>/<int:id>) Deleting the content based on the username and id of the content
+1. Adding contents :  localhost:5000/addcontent
 
-Line 259-282: (/getcontentforuser/<int:id>) Getting the content for a specified user id
+2. Adding user :  localhost:5000/addUser
 
-Line 284-305: (/addcontent) Adding the content of a user
+3. Adding categories of an id:  localhost:5000/addcategories/1
 
-Line 308-330: (/editpost/<string:testingusername>/<int:id>): Editing the content for a user based on id
 
+PUT Request
+
+1. Editing content :  localhost:5000/editpost/lily/29
+
+
+DELETE Request
+
+1. Deleting content based on ID :  localhost:5000/delemployee/marshal/5
+
+
+User Schema
+{
+"email":"email",
+"password":"password",
+"fullname":"fullname",
+"address":"address",
+"city":"city",
+"state":"state",
+"country":"country",
+"phone":"phone",
+"pincode":"pincode"
+}
+
+
+Content Schema
+{
+"title":"title",
+"body":"body",
+"summary":"summary",
+"tags":"tags",
+"file":"file"
+}
+
+
+Categories Schema
+{
+"cat1": "cat1",
+"cat2": "cat2",
+"cat3": "cat3"
+}
