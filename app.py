@@ -40,9 +40,55 @@ class Content(db.Model):
     tags = db.Column(db.String(100))
     file = db.Column(db.BLOB())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable= False)
+    relate = db.relationship('Categories', backref = "category", lazy = True)
 
     def __repr__(self):
         return f"Content('{self.title}' and '{self.body}' and '{self.summary}')"
+
+
+class Categories(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    cat1 = db.Column(db.String(20))
+    cat2 = db.Column(db.String(20))
+    cat3 = db.Column(db.String(20))
+    cat_id = db.Column(db.Integer, db.ForeignKey('content.id'), nullable = False)
+
+    def __repr__(self):
+        return f"Categories('{self.cat1}' and '{self.cat2}' and '{self.cat3}')"
+
+@app.route('/addcategories/<int:id>', methods = ['POST'])
+def addcategories(id):
+    content = Content.query.filter_by(id = id).first()
+    # if(content and user.password == request.authorization.get('password')):
+    if(content):
+        cat1 = request.json['cat1']
+        cat2 = request.json['cat2']
+        cat3 = request.json['cat3']
+
+        cats = Categories(cat1 = cat1, cat2 = cat2, cat3 = cat3, cat_id = content.id)
+
+        db.session.add(cats)
+        db.session.commit()
+
+        return jsonify({"cat1": cat1, "cat2": cat2, "cat3": cat3})
+    else:
+        message = 'cannot add categories'
+        return jsonify({"message": message})
+
+@app.route('/getcategories/<int:id>', methods = ['GET'])
+def getcategories(id):
+    cont = Content.query.filter_by(id = id).first()
+    print(cont.relate)
+    outer = []
+    for cont in cont.relate:
+        d={}
+        d["cat1"] = cont.cat1
+        d["cat2"]=cont.cat2
+        d["cat3"]=cont.cat3
+        # d["summary"] = cont.summary
+        # d["phone"] = user.phone
+        outer.append(d)
+    return jsonify(outer)
 
 
 @app.route('/addUser', methods = ['POST'])
@@ -90,26 +136,26 @@ def search1(text):
             d['title'] = dat.title
             outer.append(d)
         return jsonify(outer)
-    elif(len(data) == 0):
-        data = Content.query.filter(Content.body.contains(text)).all()
-        print(data)
-        if(data):
-            outer = []
-            for dat in data:
-                d = {}
-                d['body'] = dat.body
-                outer.append(d)
-            return jsonify(outer)
-    elif(len(data) == 0):
-        data = Content.query.filter(Content.summary.contains(text)).all()
-        print(data)
-        if(data):
-            outer = []
-            for dat in data:
-                d = {}
-                d['summary'] = dat.summary
-                outer.append(d)
-            return jsonify(outer)
+    # elif(len(data) == 0):
+    data = Content.query.filter(Content.body.contains(text)).all()
+    print(data)
+    if(data):
+        outer = []
+        for dat in data:
+            d = {}
+            d['body'] = dat.body
+            outer.append(d)
+        return jsonify(outer)
+    # elif(len(data) == 0):
+    data = Content.query.filter(Content.summary.contains(text)).all()
+    print(data)
+    if(data):
+        outer = []
+        for dat in data:
+            d = {}
+            d['summary'] = dat.summary
+            outer.append(d)
+        return jsonify(outer)
     return jsonify(data)
 
 @app.route('/getUser', methods = ['GET'])
@@ -234,11 +280,6 @@ def getcontentforuser(id):
         d['tags'] = user.tags
         outer.append(d)
     return jsonify(outer)
-    # else:
-    #     error = 'content not found'
-    #     return jsonify({"error": error})
-            
-
 
 @app.route('/addcontent', methods = ['POST'])
 def addcontent():
