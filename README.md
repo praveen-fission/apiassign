@@ -32,6 +32,12 @@ python -m venv env
 .\env\Scripts\activate
 ```
 
+## requirements.txt
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Setup your database
 
 
@@ -49,6 +55,13 @@ from app import db
 ```bash
 db.create_all()
 ```
+
+## To run
+
+```bash
+python app.py
+```
+
 ## Register
 [http://localhost:5000/User](http://localhost:5000/User)
 
