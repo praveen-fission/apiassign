@@ -10,6 +10,13 @@ All the fields are not mandatory
 The Content will have fields such as title, body, summary, categories and pdf
 
 
+# Get:
+[http://localhost:5000/Users](http://localhost:5000/Users)
+# Login:
+
+[http://localhost:5000/login](http://localhost:5000/login)
+
+
 GET Request
 
 1. Get all posts based on ID:  localhost:5000/getPost/2
