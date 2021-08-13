@@ -1,72 +1,69 @@
-# cms 
+# CMS
 
-Flask Api Assignment for content management system
+This is a content management system where one can register and login.
+Users can create, view, edit and delete their posts
+.
 
-This system will contain User and Content
+## Installation
 
-The User have to register by entering data in fields such as fullname, email, password, phone, address, city, state, country, pincode.
-All the fields are not mandatory
+This project requires the following tools
 
-The Content will have fields such as title, body, summary, categories and pdf
+Python - The programming language used by Flask
 
+Sqlite - A relational database system
 
-GET Request
-
-1. Get all posts based on ID:  localhost:5000/getPost/2
-
-2. Get content of a user:  localhost:5000/getcontentforuser/2
-
-3. Search the text:  localhost:5000/search1/2nd body
-
-4. Get all the categories of an id:  localhost:5000/getcategories/2
+Sqlalchemy - It's a library for handling databases
+ 
+Virtualenv - A tool for creating isolated Python environments.
 
 
-POST Request
 
-1. Adding contents :  localhost:5000/addcontent
+To get started, install Python and flask on your local computer 
+if you don't have them already. You can optionally use another database system instead of SQLite, like Postgres
 
-2. Adding user :  localhost:5000/addUser
+## Create a virtual environment
 
-3. Adding categories of an id:  localhost:5000/addcategories/1
+```bash
+python -m venv env
+```
+### To activate virtual environment
 
+```bash
+.\env\Scripts\activate
+```
 
-PUT Request
-
-1. Editing content :  localhost:5000/editpost/lily/29
-
-
-DELETE Request
-
-1. Deleting content based on ID :  localhost:5000/delemployee/marshal/5
-
-
-User Schema
-{
-"email":"email",
-"password":"password",
-"fullname":"fullname",
-"address":"address",
-"city":"city",
-"state":"state",
-"country":"country",
-"phone":"phone",
-"pincode":"pincode"
-}
+## Setup your database
 
 
-Content Schema
-{
-"title":"title",
-"body":"body",
-"summary":"summary",
-"tags":"tags",
-"file":"file"
-}
+You need to be able to connect to a database.
+You will need to know the connection URL for your application which we will call DATABASE_URL in your environment variables. Here is an example:
 
+```bash
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cms.db'
+```
 
-Categories Schema
-{
-"cat1": "cat1",
-"cat2": "cat2",
-"cat3": "cat3"
-}
+```bash
+from app import db
+```
+
+```bash
+db.create_all()
+```
+## Register
+[http://localhost:5000/User](http://localhost:5000/User)
+
+## Login
+
+[http://localhost:5000/login](http://localhost:5000/login)
+
+## Post
+[http://localhost:5000/content](http://localhost:5000/content)
+
+## Get
+[http://localhost:5000/Users](http://localhost:5000/Users)
+
+## Put
+[http://localhost:5000/epost](http://localhost:5000/epost)
+
+## Delete
+[http://localhost:5000/post](http://localhost:5000/post)
