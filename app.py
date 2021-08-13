@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import json
-import re
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cms.db'
@@ -20,17 +20,11 @@ class User(db.Model):
     state = db.Column(db.String(50))
     country = db.Column(db.String(50))
     pincode = db.Column(db.String(6), nullable = False)
-    category = db.relationship('Content', backref = "categories", lazy = True)
+    category = db.relationship('Content', backref = "categories", lazy = True,
+                collection_class=attribute_mapped_collection('contentattributes'))
 
     def __repr__(self):
         return f"User('{self.fullname}', '{self.email}', '{self.pincode}')"
-
-def convertToBinaryData(filename):
-    # Convert digital data to binary format
-    with open(filename, 'rb') as file:
-        blobData = file.read()
-    return blobData
-
 
 class Content(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -42,9 +36,12 @@ class Content(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable= False)
     relate = db.relationship('Categories', backref = "category", lazy = True)
 
+    @property
+    def contentattributes(self):
+        return self.id, self.title, self.body, self.summary
+
     def __repr__(self):
         return f"Content('{self.title}' and '{self.body}' and '{self.summary}')"
-
 
 class Categories(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -56,43 +53,55 @@ class Categories(db.Model):
     def __repr__(self):
         return f"Categories('{self.cat1}' and '{self.cat2}' and '{self.cat3}')"
 
-@app.route('/addcategories/<int:id>', methods = ['POST'])
-def addcategories(id):
+@app.route('/login', methods = ['POST'])
+def login():
+    fullname = request.json["fullname"]
+    password = request.json["password"]
+    all_users = User.query.all()
+    for user in all_users:
+        if(user.fullname == fullname and user.password == password):
+            user = User.query.filter_by(fullname = fullname).first()
+            contents_of_a_user = user.category
+            contents = []
+            for user in contents_of_a_user:
+                result = {}
+                result['title'] = user[1]
+                result['body'] = user[2]
+                result['summary'] = user[3]
+                contents.append(result)
+            return jsonify(contents)
+    message = 'Invalid fullname or password.'
+    return jsonify({"message": message})
+
+@app.route('/category/<int:id>', methods = ['POST'])
+def category(id):
     content = Content.query.filter_by(id = id).first()
-    # if(content and user.password == request.authorization.get('password')):
     if(content):
         cat1 = request.json['cat1']
         cat2 = request.json['cat2']
         cat3 = request.json['cat3']
-
         cats = Categories(cat1 = cat1, cat2 = cat2, cat3 = cat3, cat_id = content.id)
-
         db.session.add(cats)
         db.session.commit()
-
         return jsonify({"cat1": cat1, "cat2": cat2, "cat3": cat3})
     else:
         message = 'cannot add categories'
         return jsonify({"message": message})
 
-@app.route('/getcategories/<int:id>', methods = ['GET'])
-def getcategories(id):
+@app.route('/categories/<int:id>', methods = ['GET'])
+def categories(id):
     cont = Content.query.filter_by(id = id).first()
-    print(cont.relate)
     outer = []
     for cont in cont.relate:
         d={}
         d["cat1"] = cont.cat1
         d["cat2"]=cont.cat2
         d["cat3"]=cont.cat3
-        # d["summary"] = cont.summary
-        # d["phone"] = user.phone
         outer.append(d)
     return jsonify(outer)
 
-
-@app.route('/addUser', methods = ['POST'])
-def addUser():
+@app.route('/User', methods = ['POST'])
+def User():
     fullname = request.json['fullname']
     email = request.json['email']
     password = request.json['password']
@@ -103,7 +112,6 @@ def addUser():
     country = request.json['country']
     pincode = request.json['pincode']
     error = None
-
     if(len(phone) != 10 and (char.isalpha() for char in phone)):
         error = 'phone number should be 10 digits and should not contain alphabets'
         return jsonify({"error":error})
@@ -124,210 +132,122 @@ def addUser():
         db.session.commit()
         return jsonify({"fullname": fullname, "email": email, "password": password, "phone": phone, "address": address, "city": city, "state": state, "country": country, "pincode": pincode})
 
+@app.route('/search/<string:fullname>', methods = ['GET','POST'])
+def search(fullname):
+    text_to_search = request.json['text_to_search']
+    user = User.query.filter_by(fullname = fullname).first()
+    for key,value in user.category.items():
+        if(text_to_search in key):
+            message = 'text found'
+            return jsonify(text_to_search, message, key)
+    message = 'not found'
+    return jsonify({"message": message})
 
-@app.route('/search1/<string:text>', methods = ['GET', 'POST'])
-def search1(text):
-    data = Content.query.filter(Content.title.contains(text)).all()
-    print(data)
-    if(data):
-        outer = []
-        for dat in data:
-            d = {}
-            d['title'] = dat.title
-            outer.append(d)
-        return jsonify(outer)
-    # elif(len(data) == 0):
-    data = Content.query.filter(Content.body.contains(text)).all()
-    print(data)
-    if(data):
-        outer = []
-        for dat in data:
-            d = {}
-            d['body'] = dat.body
-            outer.append(d)
-        return jsonify(outer)
-    # elif(len(data) == 0):
-    data = Content.query.filter(Content.summary.contains(text)).all()
-    print(data)
-    if(data):
-        outer = []
-        for dat in data:
-            d = {}
-            d['summary'] = dat.summary
-            outer.append(d)
-        return jsonify(outer)
-    return jsonify(data)
-
-@app.route('/getUser', methods = ['GET'])
-def getUser():
+@app.route('/Users', methods = ['GET'])
+def Users():
     users = User.query.all()
-
-    outer = []
+    output = []
     for user in users:
-        d={}
-        d["id"] = user.id
-        d["fullname"]=user.fullname
-        d["email"]=user.email
-        d["password"] = user.password
-        d["phone"] = user.phone
-        d["address"] = user.address
-        d["city"] = user.city
-        d["state"] = user.state
-        d["country"] = user.country
-        d["pincode"] = user.pincode
-        outer.append(d)
-    return jsonify(outer)
+        result={}
+        result["id"] = user.id
+        result["fullname"]=user.fullname
+        result["email"]=user.email
+        result["password"] = user.password
+        result["phone"] = user.phone
+        result["address"] = user.address
+        result["city"] = user.city
+        result["state"] = user.state
+        result["country"] = user.country
+        result["pincode"] = user.pincode
+        output.append(result)
+    return jsonify(output)
 
-@app.route('/getPost/<int:id>', methods = ['GET'])
-def getPost(id):
-    # user = User.query.filter_by(fullname = 'marshal').first()
-    # user1 = User.query.filter_by(fullname = 'lily').first()
+@app.route('/posts/<int:id>', methods = ['GET'])
+def posts(id):
     users = User.query.all()
     user1 = User.query.filter_by(id = id).first()
-    # user1 = User.query.filter_by(testingusername == users[0].fullname).first()
-    # print(user1)
-    
-    # print(users[3].id)
-    # print(len(users))
-
     list_of_ids = []
-    for i in range(len(users)):
-        list_of_ids.append(users[i].id)
-    print(list_of_ids)
-
-    
+    for user in range(len(users)):
+        list_of_ids.append(users[user].id)
     if(id in list_of_ids):
-        print(f'id {id} is in database')
-
-        outer = []
-        print(len(user1.category))
+        output = []
         if(len(user1.category) == 0):
-            error1 = 'there are no content for this user. Please add some content'
-            return jsonify({"details":error1})
+            message = 'there are no content for this user. Please add some content'
+            return jsonify({"details":message})
         else:
-            # return redirect(url_for('login', id = id))
-            for cont in user1.category:
-                d={}
-                d["id"] = cont.id
-                d["title"]=cont.title
-                d["body"]=cont.body
-                d["summary"] = cont.summary
-                d["tags"] = cont.tags
-                # d["phone"] = user.phone
-                outer.append(d)
-            return jsonify(outer)
-            return redirect('/login')
-        # return render_template('loginform.html')
+            for content in user1.category:
+                result={}
+                result["id"] = content[0]
+                result["title"]=content[1]
+                result["body"]=content[2]
+                result["summary"] = content[3]
+                output.append(result)
+            return jsonify(output)
     else:
         error = 'id is not registered in our database'
         return jsonify({"error": error})
-        # print('id is not registered in our database')
- 
-    outer = []
-    for cont in user1.category:
-        d={}
-        d["id"] = cont.id
-        d["title"]=cont.title
-        d["body"]=cont.body
-        d["summary"] = cont.summary
-        # d["phone"] = user.phone
-        outer.append(d)
-    return jsonify(outer)
 
-
-@app.route('/delemployee/<string:testingusername>/<int:id>',methods = ['DELETE'])
-def delemployee(testingusername,id):
-    user1 = User.query.filter_by(fullname = testingusername).first()
-    print(user1)
-    print(user1.pincode)
-    print(user1.id)
-    
-    list_of_ids = []
-    for con in user1.category:
-        list_of_ids.append(con.id)
-    print('end of for loop')
-        
-    outer = []
-    for i,j in enumerate(list_of_ids):
-        if(id in list_of_ids and id == j):
-            cont = user1.category[i]
-            print(cont)
-            d = {}
-            d["id"] = cont.id
-            d["title"]=cont.title
-            d["body"]=cont.body
-            d["summary"] = cont.summary
-            db.session.delete(cont)
-            db.session.commit()
-            outer.append(d)
-            return jsonify(outer)
-
-    return 'id is not present'
-
-
-# to get content for a particular user
-@app.route('/getcontentforuser/<int:id>', methods = ['GET'])
-def getcontentforuser(id):
-    # user = User.query.filter_by(fullname = request.authorization.get('username')).first()
-    # if(user and user.password == request.authorization.get('password')):
+@app.route('/contents/<int:id>', methods = ['GET'])
+def contents(id):
     user1 = User.query.filter_by(id = id).first()
-    outer = []
+    output = []
     for user in user1.category:
-        d={}
-        d["title"] = user.title
-        d["body"] = user.body
-        d["summary"] = user.summary
-        d['tags'] = user.tags
-        outer.append(d)
-    return jsonify(outer)
+        result={}
+        result["title"] = user[0]
+        result["body"] = user[1]
+        result["summary"] = user[2]
+        output.append(result)
+    return jsonify(output)
 
-@app.route('/addcontent', methods = ['POST'])
-def addcontent():
+@app.route('/content', methods = ['POST'])
+def content():
     user = User.query.filter_by(fullname = request.authorization.get('username')).first()
     if(user and user.password == request.authorization.get('password')):
-        print(user.fullname, user.password)
         title = request.form["title"]
         body = request.form["body"]
         summary = request.form["summary"]
         tags = request.form["tags"]
         pdf = request.files['pdf']
-        abcd = pdf.read()
-        print(title,body,summary,tags,pdf, abcd)
-
-        cont  = Content(title = title, body = body, summary = summary, tags = json.dumps(tags), file = abcd ,user_id = user.id)
-
+        data = pdf.read()
+        cont  = Content(title = title, body = body, summary = summary, tags = json.dumps(tags), file = data ,user_id = user.id)
         db.session.add(cont)
         db.session.commit()
         return jsonify({"title":title, "body":body, "summary":summary, "tags": tags})
     else:
-        # print(user.fullname, user.password)
-        print(user)
         return jsonify({"error": "try again"})
 
+@app.route('/post/<int:id>', methods = ['DELETE'])
+def post(id):
+    user = User.query.filter_by(fullname = request.authorization.get('username')).first()
+    if(user and user.password == request.authorization.get('password')):
+        content = Content.query.get(id)
+        output = []
+        result = {}
+        result['id'] = content.id
+        result['title'] = content.title
+        result['body'] = content.body
+        result['summary'] = content.summary
+        db.session.delete(content)
+        db.session.commit()
+        output.append(result)
+        return jsonify(output)
+    else:
+        message = 'User credentials are incorrect'
+        return jsonify({"message": message})
 
-@app.route('/editpost/<string:testingusername>/<int:id>', methods = ['PUT'])
-def editpost(testingusername,id):
-    user1 = User.query.filter_by(fullname = testingusername).first()
-
-    list_of_ids = []
-    for con in user1.category:
-        list_of_ids.append(con.id)
-
-
-    outer = []
-    for i,j in enumerate(list_of_ids):
-        if(id in list_of_ids and id == j):
-            cont = user1.category[i]
-            print(cont)
-            cont.title = request.json['title']
-            cont.body = request.json['body']
-            cont.summary = request.json['summary']
-            db.session.commit()
-
-            return jsonify({"title": cont.title, "body": cont.body, "summary": cont.summary})
-
-
-    return 'id is not present' 
-
+@app.route('/epost/<int:id>', methods = ['PUT'])
+def epost(id):
+    user = User.query.filter_by(fullname = request.authorization.get('username')).first()
+    if(user and user.password == request.authorization.get('password')):
+        content = Content.query.get(id)
+        content.title = request.json['title']
+        content.body = request.json['body']
+        content.summary = request.json['summary']
+        db.session.commit()
+        return jsonify({"title": content.title, "body": content.body, "summary": content.summary})
+    else:
+        message = 'User credentials are incorrect'
+        return jsonify({"message": message})
+    
 if __name__ == '__main__':
     app.run(debug = True)
