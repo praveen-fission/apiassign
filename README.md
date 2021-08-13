@@ -67,3 +67,43 @@ db.create_all()
 
 ## Delete
 [http://localhost:5000/post](http://localhost:5000/post)
+
+
+
+## User Schema
+```bash
+{
+"email":"email",
+"password":"password",
+"fullname":"fullname",
+"address":"address",
+"city":"city",
+"state":"state",
+"country":"country",
+"phone":"phone",
+"pincode":"pincode"
+}
+
+```
+## Content Schema
+
+```bash
+{
+"title":"title",
+"body":"body",
+"summary":"summary",
+"tags":"tags",
+"file":"file"
+}
+
+```
+
+## Category Schema
+
+```bash
+{
+"cat1": "cat1",
+"cat2": "cat2",
+"cat3": "cat3"
+}
+```
