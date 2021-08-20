@@ -101,7 +101,7 @@ def categories(id):
     return jsonify(outer)
 
 @app.route('/User', methods = ['POST'])
-def User():
+def Register():
     fullname = request.json['fullname']
     email = request.json['email']
     password = request.json['password']
